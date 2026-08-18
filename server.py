@@ -252,6 +252,7 @@ def main():
         args.model, device="cpu", compute_type="int8", cpu_threads=args.cpu_threads
     )
     print("Model loaded. Server ready on http://%s:%d" % (args.host, args.port))
+    state["last_active"] = time.time()
     if args.idle_timeout > 0:
         threading.Thread(target=idle_watcher, daemon=True).start()
     app.run(host=args.host, port=args.port, threaded=True)

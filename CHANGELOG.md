@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.2.4] — 2026-08-19
+
+### Fixed
+- Idle auto-shutdown no longer fires right after a slow model load (timer starts when the server is actually ready) — fixes dictation dying on slow machines and on CI
+
 ## [0.2.3] — 2026-08-19
 
 ### Added
