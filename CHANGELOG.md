@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.2.6] — 2026-08-19
+
+### Added
+- Fully automatic first-run setup: if Python is missing it gets installed (winget/brew/apt), a private hidden environment is created in the OS app-data folder, dependencies install themselves — zero manual steps
+- Reuses an already working Python/dependencies if present — nothing is created when everything already exists
+- Hidden environment is tamper-checked via a random nonce marker (env.id) — a swapped/hijacked interpreter is detected and re-created
+- New command "Voice Dictation: Run first-time setup" for manual re-run
+- Setup state stored in `%LOCALAPPDATA%/voice_dictation/env.json` (macOS/Linux: Application Support / .local/share)
+
 ## [0.2.5] — 2026-08-19
 
 ### Changed

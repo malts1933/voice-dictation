@@ -27,7 +27,7 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Syntax check all Python files
-        run: python -m py_compile server.py global_dictation.py dictation_format.py test_format.py test_server_smoke.py
+        run: python -m py_compile server.py global_dictation.py dictation_format.py bootstrap.py test_format.py test_server_smoke.py
 
       - name: Formatting logic tests
         run: python test_format.py

@@ -80,7 +80,43 @@ def open_history():
         pass
 
 
+def env_root():
+    if os.name == "nt":
+        base = os.environ.get("LOCALAPPDATA") or os.path.join(
+            os.path.expanduser("~"), "AppData", "Local")
+    elif IS_MAC:
+        base = os.path.join(os.path.expanduser("~"), "Library", "Application Support")
+    else:
+        base = os.environ.get("XDG_DATA_HOME") or os.path.join(
+            os.path.expanduser("~"), ".local", "share")
+    return os.path.join(base, "voice_dictation")
+
+
+def env_json_python():
+    try:
+        with open(os.path.join(env_root(), "env.json"), encoding="utf-8") as f:
+            j = json.load(f)
+        if not j.get("python") or not os.path.exists(j["python"]):
+            return None
+        if j.get("mode") == "managed":
+            if not j.get("nonce"):
+                return None
+            marker = os.path.join(j.get("root") or env_root(), "env", "env.id")
+            try:
+                with open(marker, encoding="utf-8") as f:
+                    if f.read().strip() != j["nonce"]:
+                        return None
+            except Exception:
+                return None
+        return j["python"]
+    except Exception:
+        return None
+
+
 def find_python():
+    recorded = env_json_python()
+    if recorded:
+        return recorded
     if os.name == "nt":
         candidates = [
             os.path.join(SCRIPT_DIR, "venv_dictation", "Scripts", "pythonw.exe"),
@@ -100,6 +136,24 @@ def find_python():
     return candidates[-1]
 
 
+def ensure_setup():
+    if env_json_python():
+        return True
+    local = os.path.join(SCRIPT_DIR, "venv_dictation")
+    if os.path.exists(local):
+        return True
+    bootstrap = os.path.join(SCRIPT_DIR, "bootstrap.py")
+    requirements = os.path.join(SCRIPT_DIR, "requirements.txt")
+    if not os.path.exists(bootstrap):
+        return False
+    try:
+        r = subprocess.run([sys.executable, bootstrap, "--requirements", requirements],
+                           cwd=SCRIPT_DIR, capture_output=True, text=True, timeout=900)
+        return r.returncode == 0
+    except Exception:
+        return False
+
+
 def api(path, method="GET", body=None, timeout=5):
     r = requests.request(method, SERVER_URL + path, json=body, timeout=timeout)
     r.raise_for_status()
@@ -114,6 +168,8 @@ def ensure_server(model="small", device=None, idle_timeout=300):
         return True
     except Exception:
         pass
+    if not ensure_setup():
+        return False
     log = open(os.path.join(SCRIPT_DIR, "server.log"), "a", encoding="utf-8")
     args = [find_python(), "server.py", "--model", model, "--port", "8765",
             "--idle-timeout", str(idle_timeout),

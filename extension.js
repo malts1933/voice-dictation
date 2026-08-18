@@ -40,9 +40,44 @@ function serverUrl() {
   return cfg().get('serverUrl', 'http://127.0.0.1:8765');
 }
 
+function homeDir() {
+  return process.env.HOME || process.env.USERPROFILE || '';
+}
+
+function appDataDir() {
+  if (process.platform === 'win32') {
+    return path.join(process.env.LOCALAPPDATA || path.join(homeDir(), 'AppData', 'Local'), 'voice_dictation');
+  }
+  if (process.platform === 'darwin') {
+    return path.join(homeDir(), 'Library', 'Application Support', 'voice_dictation');
+  }
+  return path.join(process.env.XDG_DATA_HOME || path.join(homeDir(), '.local', 'share'), 'voice_dictation');
+}
+
+function envPython() {
+  try {
+    const j = JSON.parse(fs.readFileSync(path.join(appDataDir(), 'env.json'), 'utf8'));
+    if (!j.python || !fs.existsSync(j.python)) return null;
+    if (j.mode === 'managed') {
+      if (!j.nonce) return null;
+      const marker = path.join(j.root || appDataDir(), 'env', 'env.id');
+      let got = '';
+      try {
+        got = fs.readFileSync(marker, 'utf8').trim();
+      } catch {
+        return null;
+      }
+      if (got !== j.nonce) return null;
+    }
+    return j.python;
+  } catch {
+    return null;
+  }
+}
+
 function findPython() {
   const fromCfg = (cfg().get('pythonPath', '') || '').trim();
-  let base = fromCfg || 'python';
+  let base = fromCfg || envPython() || 'python';
   if (!fs.existsSync(base)) base = 'python';
   const dir = path.dirname(base);
   for (const n of ['pythonw.exe', 'python3w.exe']) {
@@ -291,6 +326,40 @@ function updateStatusBar() {
   }
 }
 
+function runBootstrap(bootstrapPy) {
+  return new Promise((resolve, reject) => {
+    const bp = path.join(__dirname, 'bootstrap.py');
+    const args = [bp, '--requirements', path.join(__dirname, 'requirements.txt')];
+    const proc = spawn(bootstrapPy, args, { cwd: __dirname, windowsHide: true });
+    let out = '';
+    proc.stdout.on('data', d => (out += d));
+    proc.stderr.on('data', d => (out += d));
+    const timer = setTimeout(() => {
+      proc.kill();
+      reject(new Error('First-time setup timed out. Run "Voice Dictation: Run first-time setup" again.'));
+    }, 15 * 60 * 1000);
+    proc.on('close', code => {
+      clearTimeout(timer);
+      if (code === 0) resolve(out);
+      else reject(new Error('First-time setup failed:\n' + out.split('\n').slice(-12).join('\n')));
+    });
+    proc.on('error', err => {
+      clearTimeout(timer);
+      reject(new Error('Could not run setup: ' + err.message));
+    });
+  });
+}
+
+function serverLogTail() {
+  try {
+    const log = fs.readFileSync(path.join(__dirname, 'server.log'), 'utf8');
+    const lines = log.split(/\r?\n/).filter(Boolean);
+    return lines.slice(-15).join('\n');
+  } catch {
+    return '(no server.log yet)';
+  }
+}
+
 async function ensureServer() {
   try {
     await api('/api/status');
@@ -307,9 +376,21 @@ async function ensureServer() {
   if (!serverStarting) {
     serverStarting = true;
     statusBarItem.text = '$(sync~spin) Starting server...';
+    const fromCfg = (cfg().get('pythonPath', '') || '').trim();
+    if (!fromCfg && !envPython()) {
+      statusBarItem.text = '$(sync~spin) First-time setup...';
+      try {
+        await runBootstrap('python');
+      } catch (e) {
+        serverStarting = false;
+        updateStatusBar();
+        vscode.window.showErrorMessage(e.message);
+        throw e;
+      }
+    }
     startServerProcess();
   }
-  for (let i = 0; i < 120; i++) {
+  for (let i = 0; i < 900; i++) {
     await sleep(500);
     try {
       await api('/api/status');
@@ -317,13 +398,15 @@ async function ensureServer() {
       updateStatusBar();
       return true;
     } catch {
+      if (i === 60) statusBarItem.text = '$(sync~spin) Loading model (first run may take minutes)...';
       /* still loading */
     }
   }
   serverStarting = false;
   updateStatusBar();
   vscode.window.showErrorMessage(
-    'Failed to start dictation server. Check voiceDictation.pythonPath setting and server.log.'
+    'Failed to start dictation server. Check voiceDictation.pythonPath setting and server.log.\n' +
+      serverLogTail()
   );
   throw new Error('server start failed');
 }
@@ -594,6 +677,24 @@ async function toggleTerminal() {
   }
 }
 
+async function runSetupCommand() {
+  vscode.window.withProgress(
+    {
+      location: vscode.ProgressLocation.Notification,
+      title: 'Voice dictation: installing environment...',
+      cancellable: false,
+    },
+    async () => {
+      try {
+        await runBootstrap('python');
+        vscode.window.showInformationMessage('Environment ready.');
+      } catch (e) {
+        vscode.window.showErrorMessage(e.message);
+      }
+    }
+  );
+}
+
 async function restartServer() {
   if (recording) await stopRecording(false);
   try {
@@ -636,6 +737,7 @@ function activate(context) {
     vscode.commands.registerCommand('voiceDictation.toggleTerminal', toggleTerminal),
     vscode.commands.registerCommand('voiceDictation.cancel', cancelRecording),
     vscode.commands.registerCommand('voiceDictation.restartServer', restartServer),
+    vscode.commands.registerCommand('voiceDictation.setup', runSetupCommand),
     DECOR.recOn,
     DECOR.recOff,
     DECOR.busy,
