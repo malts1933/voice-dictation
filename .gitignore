@@ -1,7 +1,12 @@
 node_modules/
 *.vsix
 server.log
+server_smoke.log
 __pycache__/
 *.pyc
 .vscode/
 *.log
+venv_dictation/
+global_dictation_config.json
+dictation_history.md
+api_key.txt

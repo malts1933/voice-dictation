@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.2.0] — 2026-08-19
+
+### Added
+- **Global dictation — anywhere on your computer** (`global_dictation.py`): press and hold `Ctrl+Alt+G`, speak, release — text is pasted into any app (browser, chat, documents, terminal)
+- **Start at login**: tray toggle keeps the app + Whisper model in memory (instant dictation) via registry / LaunchAgent / autostart file
+- **Hotkey changed to `Ctrl+Alt+G`** in the editor and terminal (extension and global app); `Ctrl+Alt+Space` now pastes the last transcript
+- **Floating widget**: always-on-top mic bubble that can be hidden, closed and reopened; drag it anywhere, position is remembered
+- **System tray app** with record/paste/language controls
+- **History**: every dictation is saved with a timestamp to `dictation_history.md`, opened from the tray
+- **Cross-platform**: same code runs on Windows, macOS and Linux; `Cmd`-based paste on Mac, `Super` hotkey support
+- **CI**: GitHub Actions automatically tests the server, formatter and syntax on Windows, macOS and Linux
+- `dictation_format.py`: formatter extracted into a shareable module with unit tests (`test_format.py`)
+
 ## [0.1.4] — 2026-08-19
 
 ### Added

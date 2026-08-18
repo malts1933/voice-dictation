@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install system audio lib (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libportaudio2
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Syntax check all Python files
+        run: python -m py_compile server.py global_dictation.py dictation_format.py test_format.py test_server_smoke.py
+
+      - name: Formatting logic tests
+        run: python test_format.py
+
+      - name: Server API smoke test
+        run: python test_server_smoke.py
+
+      - name: Import test (GUI modules where available)
+        run: python -c "import global_dictation; print('global_dictation import OK')"
+        continue-on-error: true
