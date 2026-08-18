@@ -2,7 +2,7 @@
   "name": "voice-dictation",
   "displayName": "Voice Dictation (Local Whisper)",
   "description": "Press a key, speak, text appears. 100% local, private speech-to-text dictation for VS Code and Antigravity, powered by faster-whisper.",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "publisher": "malts1933",
   "author": "malts1933",
   "license": "MIT",

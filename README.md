@@ -9,7 +9,7 @@ No cloud. No API keys. No accounts. Your voice never leaves your computer.
 ![Platform: Linux](https://img.shields.io/badge/platform-Linux-orange)
 ![License: MIT](https://img.shields.io/badge/license-MIT-green)
 ![Local](https://img.shields.io/badge/privacy-100%25%20local-orange)
-![Version](https://img.shields.io/badge/version-0.2.0-purple)
+![Version](https://img.shields.io/badge/version-0.2.1-purple)
 
 ---
 

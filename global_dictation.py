@@ -297,7 +297,7 @@ held = set()
 
 
 def hotkey_keys():
-    return [HOTKEY_KEYS[k] for k in config.data.get("hotkey", ["ctrl", "cmd", "space"])]
+    return [HOTKEY_KEYS.get(k, k) for k in config.data.get("hotkey", ["ctrl", "alt", "g"])]
 
 
 def combo_held():
@@ -314,8 +314,12 @@ def on_press(key):
             and not dictator.recording and not combo_held()):
         paste_last()
         return
-    if combo_held() and not dictator.recording and not vscode_focused():
-        dictator.start(via_hotkey=True)
+    if combo_held():
+        if dictator.recording:
+            dictator.stop()
+        elif not vscode_focused():
+            dictator.start(via_hotkey=True)
+        return
 
 
 def on_release(key):

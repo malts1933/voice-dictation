@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1] — 2026-08-19
+
+### Fixed
+- Global hotkey `Ctrl+Alt+G`: letter keys (like `G`) are now tracked correctly — recording starts on the full combo, not on `Ctrl+Alt` alone
+- Hotkey now also **stops** an ongoing recording (toggle behavior), including recordings started from the widget/tray
+- Stuck "recording" state on the server no longer blocks new dictations (cancel/reset handled)
+
 ## [0.2.0] — 2026-08-19
 
 ### Added
