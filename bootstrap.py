@@ -155,7 +155,69 @@ def create_managed_env(base):
     return managed_python()
 
 
+def dir_size(path):
+    total = 0
+    try:
+        for root, _dirs, files in os.walk(path):
+            for f in files:
+                try:
+                    total += os.path.getsize(os.path.join(root, f))
+                except Exception:
+                    pass
+    except Exception:
+        pass
+    return total
+
+
+def legacy_env():
+    return os.path.join(SCRIPT_DIR, "venv_dictation")
+
+
+def report():
+    out = {"env_root": env_root(), "mode": None, "python": None,
+           "env_size_mb": round(dir_size(env_root()) / 1048576),
+           "legacy": [], "hf_cache_mb": 0}
+    try:
+        with open(env_json_path(), encoding="utf-8") as f:
+            j = json.load(f)
+        out["mode"] = j.get("mode")
+        out["python"] = j.get("python")
+    except Exception:
+        pass
+    if os.path.exists(legacy_env()):
+        out["legacy"].append({"path": legacy_env(),
+                              "size_mb": round(dir_size(legacy_env()) / 1048576)})
+    old = os.path.join(os.path.expanduser("~"), ".voice-dictation")
+    if os.path.exists(old):
+        out["legacy"].append({"path": old,
+                              "size_mb": round(dir_size(old) / 1048576)})
+    hf = os.path.join(os.path.expanduser("~"), ".cache", "huggingface")
+    if os.path.exists(hf):
+        out["hf_cache_mb"] = round(dir_size(hf) / 1048576)
+    print(json.dumps(out, indent=2))
+    return 0
+
+
+def cleanup_legacy():
+    removed = []
+    for p in (legacy_env(), os.path.join(os.path.expanduser("~"), ".voice-dictation")):
+        if not os.path.exists(p):
+            continue
+        try:
+            shutil.rmtree(p, ignore_errors=True)
+            status = "removed" if not os.path.exists(p) else "partial (files in use)"
+        except Exception as e:
+            status = "error: %s" % e
+        removed.append({"path": p, "status": status})
+    print(json.dumps(removed, indent=2))
+    return 0
+
+
 def main():
+    if "--report" in sys.argv:
+        return report()
+    if "--cleanup-legacy" in sys.argv:
+        return cleanup_legacy()
     prefer = None
     if "--prefer" in sys.argv:
         prefer = sys.argv[sys.argv.index("--prefer") + 1]

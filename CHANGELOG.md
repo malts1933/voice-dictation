@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.7] — 2026-08-19
+
+### Added
+- One shared environment for all apps (extension + global dictation + multiple editors) — never duplicated
+- Old duplicated environments are removed automatically after the first successful restart from the shared one
+- New command "Voice Dictation: Show environment info" — paths, disk usage, leftover copies (with one-click cleanup)
+
 ## [0.2.6] — 2026-08-19
 
 ### Added

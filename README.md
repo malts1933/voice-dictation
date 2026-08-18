@@ -94,22 +94,15 @@ Say these while dictating — they become formatting in real time:
 ### Prerequisites
 
 - Windows 10/11, macOS or Linux (every release is tested on all three by CI)
-- [Python 3.10+](https://www.python.org/downloads/) (macOS: use the python.org installer; Linux: `sudo apt install python3-tk libportaudio2` on Debian/Ubuntu)
 - A microphone
 
-### 1. Set up the Python environment (one time)
+> **No Python needed — the first dictation installs everything automatically** (Python via winget/brew/apt if missing, a private hidden environment, and all dependencies). Zero manual steps.
 
-**Option A — one click:** double-click `setup.bat` from this repository. It creates the environment and installs everything automatically.
+### 1. First use
 
-**Option B — manual:**
+Just press **`Ctrl+Alt+G`** and speak. The first run sets up the environment automatically (one time, a few minutes). You can watch progress in the status bar, or re-run it manually with the **"Voice Dictation: Run first-time setup"** command.
 
-```bat
-cd voice-dictation
-python -m venv venv_dictation
-venv_dictation\Scripts\python -m pip install -r requirements.txt
-```
-
-> The first dictation downloads the Whisper model (~460 MB, one time). The extension auto-detects the environment; you can also point it to any Python with the `voiceDictation.pythonPath` setting.
+If you prefer a manual one-click setup, double-click `setup.bat` from this repository.
 
 ### 2. Install the extension
 
@@ -165,6 +158,14 @@ Open any file (or a terminal), press **`Ctrl+Alt+G`**, speak, press **`Ctrl+Alt+
 ```
 
 The extension is a thin client: it tells the server when to record, the server transcribes with Whisper locally, and the extension formats the result (voice commands → punctuation) and inserts it at your cursor. The server starts on demand in the background, with **no console window**, and exits by itself after 5 minutes of inactivity.
+
+## Storage (one shared environment)
+
+Everything lives in one place, shared by **all** apps (extension, global dictation, multiple editor instances):
+
+- **Environment:** one copy only. If you already have a working Python with dependencies, it is **reused as-is** — nothing is created. Otherwise a private environment is created once in the OS app-data folder (`%LOCALAPPDATA%\voice_dictation` on Windows, `~/Library/Application Support/voice_dictation` on macOS, `~/.local/share/voice_dictation` on Linux) and hidden. Old duplicated copies are removed automatically after the first successful restart.
+- **Whisper models:** downloaded once into the shared Hugging Face cache (`~/.cache/huggingface`, ~460 MB for the default `small` model) — all apps use the same files.
+- Run **"Voice Dictation: Show environment info"** to see where everything lives and how much space it uses, and to remove leftover copies.
 
 ## Troubleshooting
 

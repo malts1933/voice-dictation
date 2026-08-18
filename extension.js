@@ -88,6 +88,7 @@ function findPython() {
 }
 
 function startServerProcess() {
+  if (envPython()) cleanupLegacy();
   const py = findPython();
   const script = path.join(__dirname, 'server.py');
   const logFile = fs.openSync(path.join(__dirname, 'server.log'), 'a');
@@ -326,28 +327,36 @@ function updateStatusBar() {
   }
 }
 
-function runBootstrap(bootstrapPy) {
+function runBootstrapArgs(extra) {
   return new Promise((resolve, reject) => {
     const bp = path.join(__dirname, 'bootstrap.py');
-    const args = [bp, '--requirements', path.join(__dirname, 'requirements.txt')];
-    const proc = spawn(bootstrapPy, args, { cwd: __dirname, windowsHide: true });
+    const args = [bp].concat(extra);
+    const proc = spawn('python', args, { cwd: __dirname, windowsHide: true });
     let out = '';
     proc.stdout.on('data', d => (out += d));
     proc.stderr.on('data', d => (out += d));
     const timer = setTimeout(() => {
       proc.kill();
-      reject(new Error('First-time setup timed out. Run "Voice Dictation: Run first-time setup" again.'));
+      reject(new Error('bootstrap timed out'));
     }, 15 * 60 * 1000);
     proc.on('close', code => {
       clearTimeout(timer);
       if (code === 0) resolve(out);
-      else reject(new Error('First-time setup failed:\n' + out.split('\n').slice(-12).join('\n')));
+      else reject(new Error('bootstrap failed:\n' + out.split('\n').slice(-12).join('\n')));
     });
     proc.on('error', err => {
       clearTimeout(timer);
-      reject(new Error('Could not run setup: ' + err.message));
+      reject(new Error('Could not run bootstrap: ' + err.message));
     });
   });
+}
+
+function runBootstrap(bootstrapPy) {
+  return runBootstrapArgs(['--requirements', path.join(__dirname, 'requirements.txt')]);
+}
+
+function cleanupLegacy() {
+  return runBootstrapArgs(['--cleanup-legacy']).catch(() => {});
 }
 
 function serverLogTail() {
@@ -373,7 +382,7 @@ async function ensureServer() {
     );
     throw new Error('server offline');
   }
-  if (!serverStarting) {
+if (!serverStarting) {
     serverStarting = true;
     statusBarItem.text = '$(sync~spin) Starting server...';
     const fromCfg = (cfg().get('pythonPath', '') || '').trim();
@@ -390,6 +399,7 @@ async function ensureServer() {
     }
     startServerProcess();
   }
+
   for (let i = 0; i < 900; i++) {
     await sleep(500);
     try {
@@ -398,7 +408,7 @@ async function ensureServer() {
       updateStatusBar();
       return true;
     } catch {
-      if (i === 60) statusBarItem.text = '$(sync~spin) Loading model (first run may take minutes)...';
+      if (i === 60) statusBarItem.text = '$(sync~spin) Loading model...';
       /* still loading */
     }
   }
@@ -677,6 +687,38 @@ async function toggleTerminal() {
   }
 }
 
+async function envInfoCommand() {
+  try {
+    const out = await runBootstrapArgs(['--report']);
+    const r = JSON.parse(out);
+    const lines = [
+      'Mode: ' + (r.mode || 'not set up yet'),
+      'Environment: ' + (r.python || '(none)') + ' (' + r.env_size_mb + ' MB)',
+    ];
+    if (r.legacy && r.legacy.length) {
+      for (const l of r.legacy) lines.push('Old copies (' + l.size_mb + ' MB each): ' + l.path);
+    }
+    lines.push('Whisper models cache: ' + r.hf_cache_mb + ' MB (shared by all apps)');
+    vscode.window.showInformationMessage(lines.join('\n'), 'Run cleanup').then(choice => {
+      if (choice === 'Run cleanup') {
+        vscode.window.withProgress(
+          { location: vscode.ProgressLocation.Notification, title: 'Voice dictation: cleaning old copies...' },
+          async () => {
+            try {
+              await runBootstrapArgs(['--cleanup-legacy']);
+              vscode.window.showInformationMessage('Old copies removed.');
+            } catch (e) {
+              vscode.window.showErrorMessage(e.message);
+            }
+          }
+        );
+      }
+    });
+  } catch (e) {
+    vscode.window.showErrorMessage(e.message);
+  }
+}
+
 async function runSetupCommand() {
   vscode.window.withProgress(
     {
@@ -738,6 +780,7 @@ function activate(context) {
     vscode.commands.registerCommand('voiceDictation.cancel', cancelRecording),
     vscode.commands.registerCommand('voiceDictation.restartServer', restartServer),
     vscode.commands.registerCommand('voiceDictation.setup', runSetupCommand),
+    vscode.commands.registerCommand('voiceDictation.envInfo', envInfoCommand),
     DECOR.recOn,
     DECOR.recOff,
     DECOR.busy,
