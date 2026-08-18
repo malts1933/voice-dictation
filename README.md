@@ -68,6 +68,10 @@ Say these while dictating — they become formatting in real time:
 
 ### 1. Set up the Python environment (one time)
 
+**Option A — one click:** double-click `setup.bat` from this repository. It creates the environment and installs everything automatically.
+
+**Option B — manual:**
+
 ```bat
 cd voice-dictation
 python -m venv venv_dictation
