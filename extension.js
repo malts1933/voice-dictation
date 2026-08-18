@@ -42,7 +42,7 @@ function serverUrl() {
 
 function findPython() {
   const fromCfg = (cfg().get('pythonPath', '') || '').trim();
-  let base = fromCfg || 'D:\\SIN-Reelses\\venv_dictation\\Scripts\\python.exe';
+  let base = fromCfg || 'python';
   if (!fs.existsSync(base)) base = 'python';
   const dir = path.dirname(base);
   for (const n of ['pythonw.exe', 'python3w.exe']) {
@@ -121,7 +121,6 @@ function readApiKeys() {
   const paths = [];
   if (fromCfg) paths.push(fromCfg);
   paths.push(path.join(__dirname, 'api_key.txt'));
-  paths.push('D:\\SIN-Reelses\\api_key.txt');
   for (const p of paths) {
     try {
       const content = fs.readFileSync(p, 'utf8');

@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.2.5] — 2026-08-19
+
+### Changed
+- Removed machine-specific hardcoded paths from `extension.js` (privacy cleanup)
+
 ## [0.2.4] — 2026-08-19
 
 ### Fixed
