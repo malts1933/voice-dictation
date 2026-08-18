@@ -25,6 +25,7 @@ state = {
     "lock": threading.Lock(),
     "last_active": time.time(),
     "idle_timeout": 300,
+    "sentences": True,
     "phase": "idle",
     "progress": 0.0,
     "eta_sec": None,
@@ -57,17 +58,40 @@ def audio_callback(indata, frames, time_info, status):
         state["chunks"].append(indata[:, 0].copy())
 
 
+def join_sentences(segs):
+    groups = []
+    cur = ""
+    prev_end = None
+    for s in segs:
+        t = s.text.strip()
+        if not t:
+            continue
+        gap = s.start - prev_end if prev_end is not None else 0.0
+        boundary = gap > 0.9 or t[-1] in ".!?…"
+        if boundary and cur:
+            groups.append(cur)
+            cur = t
+        elif cur:
+            cur += " " + t
+        else:
+            cur = t
+        prev_end = s.end
+    if cur:
+        groups.append(cur)
+    return "\n".join(groups)
+
+
 def transcribe_job(chunks, t0):
     audio = np.concatenate(chunks)
     language = None if state["language"] == "auto" else state["language"]
     segments, info = state["model"].transcribe(
         audio, language=language, vad_filter=True, without_timestamps=False
     )
-    texts = []
+    segs = []
     last_end = 0.0
     total = state["total_audio_sec"]
     for seg in segments:
-        texts.append(seg.text)
+        segs.append(seg)
         last_end = max(last_end, seg.end)
         with state["lock"]:
             state["progress"] = min(100.0, last_end / total * 100 if total else 100.0)
@@ -76,7 +100,10 @@ def transcribe_job(chunks, t0):
                 state["eta_sec"] = (
                     state["elapsed_sec"] / state["progress"] * (100 - state["progress"])
                 )
-    text = "".join(texts).strip()
+    if state["sentences"]:
+        text = join_sentences(segs)
+    else:
+        text = "".join(s.text for s in segs).strip()
     with state["lock"]:
         if state["phase"] != "transcribing":
             return
@@ -189,6 +216,12 @@ def set_language():
     return jsonify({"language": lang})
 
 
+@app.post("/api/shutdown")
+def shutdown():
+    threading.Thread(target=lambda: (time.sleep(0.2), os._exit(0)), daemon=True).start()
+    return jsonify({"ok": True})
+
+
 def main():
     parser = argparse.ArgumentParser(description="Local whisper dictation server")
     parser.add_argument("--host", default="127.0.0.1")
@@ -200,11 +233,14 @@ def main():
     parser.add_argument("--cpu-threads", type=int, default=4)
     parser.add_argument("--idle-timeout", type=int, default=300,
                         help="exit automatically after this many seconds without requests (0 = never)")
+    parser.add_argument("--sentences", type=int, default=1,
+                        help="split transcription into sentences on pauses/punctuation (1 = on)")
     args = parser.parse_args()
 
     state["model_name"] = args.model
     state["language"] = args.language
     state["idle_timeout"] = args.idle_timeout
+    state["sentences"] = bool(args.sentences)
 
     print("Available input devices:")
     print(sd.query_devices())

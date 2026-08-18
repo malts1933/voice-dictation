@@ -61,6 +61,7 @@ function startServerProcess() {
     '--model', cfg().get('model', 'small'),
     '--port', '8765',
     '--idle-timeout', String(cfg().get('serverIdleSeconds', 0)),
+    '--sentences', cfg().get('sentencesOnNewLine', true) ? '1' : '0',
   ];
   const proc = spawn(py, args, { cwd: __dirname, detached: true, stdio: ['ignore', logFile, logFile], windowsHide: true });
   proc.unref();
@@ -349,7 +350,16 @@ async function startRecording() {
   const lang = cfg().get('language', 'auto');
   try {
     await api('/api/language', 'POST', { language: lang });
-    await api('/api/start', 'POST');
+    try {
+      await api('/api/start', 'POST');
+    } catch (e) {
+      if (/already recording|409/.test(String(e.message))) {
+        await api('/api/cancel', 'POST');
+        await api('/api/start', 'POST');
+      } else {
+        throw e;
+      }
+    }
   } catch (e) {
     vscode.window.showErrorMessage('Failed to start recording: ' + e.message);
     return;
@@ -585,6 +595,31 @@ async function toggleTerminal() {
   }
 }
 
+async function restartServer() {
+  if (recording) await stopRecording(false);
+  try {
+    await api('/api/shutdown', 'POST');
+  } catch {
+    /* server may already be down */
+  }
+  await sleep(800);
+  serverStarting = true;
+  startServerProcess();
+  updateStatusBar();
+  for (let i = 0; i < 120; i++) {
+    await sleep(500);
+    try {
+      await api('/api/status');
+      break;
+    } catch {
+      /* still loading */
+    }
+  }
+  serverStarting = false;
+  updateStatusBar();
+  vscode.window.showInformationMessage('Voice dictation server restarted.');
+}
+
 function activate(context) {
   DECOR.recOn = makeDecor('#ff4d4d', '● REC');
   DECOR.recOff = makeDecor('rgba(255, 80, 80, 0.35)', '● REC');
@@ -601,6 +636,7 @@ function activate(context) {
     vscode.commands.registerCommand('voiceDictation.toggle', toggle),
     vscode.commands.registerCommand('voiceDictation.toggleTerminal', toggleTerminal),
     vscode.commands.registerCommand('voiceDictation.cancel', cancelRecording),
+    vscode.commands.registerCommand('voiceDictation.restartServer', restartServer),
     DECOR.recOn,
     DECOR.recOff,
     DECOR.busy,

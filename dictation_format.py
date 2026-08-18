@@ -27,8 +27,7 @@ def match_at(tokens, i, phrase):
     return all(tokens[i + k].lower() == parts[k] for k in range(len(parts)))
 
 
-def format_transcript(raw):
-    tokens = raw.strip().split()
+def format_line(tokens):
     out = ""
     cap_next = False
     i = 0
@@ -67,3 +66,19 @@ def format_transcript(raw):
         out += word + " "
         i += 1
     return out.rstrip()
+
+
+def split_sentences(text):
+    import re
+    parts = re.split(r"(?<=[.!?…])\s+", text)
+    result = "\n".join(p.strip(" \t") for p in parts if p.strip(" \t"))
+    while "\n\n\n" in result:
+        result = result.replace("\n\n\n", "\n\n")
+    return result
+
+
+def format_transcript(raw):
+    result = []
+    for line in raw.split("\n"):
+        result.append(format_line(line.split()))
+    return split_sentences("\n".join(result))

@@ -33,7 +33,8 @@ HOTKEY_KEYS = {
 class Config:
     def __init__(self):
         self.data = {"language": "auto", "hotkey": ["ctrl", "alt", "g"], "widget": None,
-                     "history_file": "", "autostart": False, "skip_in_vscode": True}
+                     "history_file": "", "autostart": False, "skip_in_vscode": True,
+                     "sentences": True}
         self.load()
 
     def load(self):
@@ -107,13 +108,16 @@ def api(path, method="GET", body=None, timeout=5):
 
 def ensure_server(model="small", device=None, idle_timeout=300):
     try:
-        api("/api/status", timeout=2)
+        st = api("/api/status", timeout=2)
+        if st.get("recording"):
+            api("/api/cancel", "POST", timeout=2)
         return True
     except Exception:
         pass
     log = open(os.path.join(SCRIPT_DIR, "server.log"), "a", encoding="utf-8")
     args = [find_python(), "server.py", "--model", model, "--port", "8765",
-            "--idle-timeout", str(idle_timeout)]
+            "--idle-timeout", str(idle_timeout),
+            "--sentences", "1" if config.data.get("sentences", True) else "0"]
     if device is not None:
         args += ["--device", str(device)]
     flags = 0x08000000 if os.name == "nt" else 0
@@ -224,7 +228,11 @@ class Dictator:
                 return
             try:
                 api("/api/language", "POST", {"language": config.data["language"]})
-                api("/api/start", "POST")
+                try:
+                    api("/api/start", "POST")
+                except Exception:
+                    api("/api/cancel", "POST")
+                    api("/api/start", "POST")
                 self.recording = True
                 self.hotkey_hold = via_hotkey
                 show_status("REC", recording=True)
@@ -448,6 +456,16 @@ def tray_menu():
         register_autostart(enabled)
         icon.update_menu()
 
+    def on_restart(icon, item):
+        if dictator.recording:
+            dictator.cancel()
+        try:
+            api("/api/shutdown", "POST")
+        except Exception:
+            pass
+        time.sleep(1)
+        threading.Thread(target=lambda: ensure_server(), daemon=True).start()
+
     lang_items = [pystray.MenuItem(("● " if config.data.get("language") == l else "  ") + l,
                                    make_lang(l)) for l in ["auto", "ru", "en"]]
     items = [
@@ -458,6 +476,7 @@ def tray_menu():
             ("● " if config.data.get("language") == l else "  ") + l, make_lang(l)) for l in ["auto", "ru", "en"]])),
         pystray.MenuItem("Start at login", on_autostart,
                          checked=lambda item: config.data.get("autostart", False)),
+        pystray.MenuItem("Restart server", on_restart),
         pystray.Menu.SEPARATOR,
         pystray.MenuItem("Show widget", lambda i, it: widget.show()),
         pystray.MenuItem("Hide widget", lambda i, it: widget.hide()),

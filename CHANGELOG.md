@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.2.3] — 2026-08-19
+
+### Added
+- **Sentence-structured dictation**: transcription is split into sentences — each on its own line
+  - server splits on speech pauses (>0.9s) and sentence-ending punctuation (`--sentences` flag, on by default)
+  - formatters (RU + EN) additionally split on `. ? ! …` and preserve server line breaks
+- `voiceDictation.sentencesOnNewLine` setting (default `true`) to turn the line-per-sentence behavior off
+
+## [0.2.2] — 2026-08-19
+
+### Added
+- **Self-healing**: a stuck/stale "recording" state is now auto-cancelled before every new dictation (extension and global app) — no more blocked dictations after a crash
+- **Restart server** everywhere: tray menu item, `Voice Dictation: Restart server` command, `/api/shutdown` endpoint
+- Server status is reset on connect if it was left mid-recording
+
 ## [0.2.1] — 2026-08-19
 
 ### Fixed

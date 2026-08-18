@@ -2,7 +2,7 @@
   "name": "voice-dictation",
   "displayName": "Voice Dictation (Local Whisper)",
   "description": "Press a key, speak, text appears. 100% local, private speech-to-text dictation for VS Code and Antigravity, powered by faster-whisper.",
-  "version": "0.2.1",
+  "version": "0.2.3",
   "publisher": "malts1933",
   "author": "malts1933",
   "license": "MIT",
@@ -34,7 +34,8 @@
     "commands": [
       { "command": "voiceDictation.toggle", "title": "Voice Dictation: Start/stop recording (editor)" },
       { "command": "voiceDictation.toggleTerminal", "title": "Voice Dictation: Dictate into terminal" },
-      { "command": "voiceDictation.cancel", "title": "Voice Dictation: Cancel recording" }
+      { "command": "voiceDictation.cancel", "title": "Voice Dictation: Cancel recording" },
+      { "command": "voiceDictation.restartServer", "title": "Voice Dictation: Restart server" }
     ],
     "keybindings": [
       { "command": "voiceDictation.toggle", "key": "ctrl+alt+g", "when": "editorTextFocus" },
@@ -60,6 +61,11 @@
           "type": "boolean",
           "default": true,
           "description": "Append a space after inserted text"
+        },
+        "voiceDictation.sentencesOnNewLine": {
+          "type": "boolean",
+          "default": true,
+          "description": "Split dictation into sentences — each sentence on its own line (pause/punctuation based)"
         },
         "voiceDictation.autoStartServer": {
           "type": "boolean",

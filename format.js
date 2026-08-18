@@ -47,8 +47,7 @@ function matchAt(tokens, i, phrase) {
   return true;
 }
 
-function formatTranscript(raw) {
-  const tokens = raw.trim().split(/\s+/).filter(Boolean);
+function formatLine(tokens) {
   let out = '';
   let capitalizeNext = false;
   let deleteWord = 0;
@@ -104,6 +103,29 @@ function formatTranscript(raw) {
   }
 
   return { text: out.trim(), deleteWord, deleteSentence };
+}
+
+function splitSentences(text) {
+  const parts = text.split(/(?<=[.!?…])\s+/);
+  let result = parts
+    .map(p => p.replace(/^[ \t]+|[ \t]+$/g, ''))
+    .filter(Boolean)
+    .join('\n');
+  while (result.includes('\n\n\n')) result = result.replace(/\n\n\n/g, '\n\n');
+  return result;
+}
+
+function formatTranscript(raw) {
+  const lines = raw.split('\n');
+  let deleteWord = 0;
+  let deleteSentence = 0;
+  const formatted = lines.map(line => {
+    const r = formatLine(line.trim().split(/\s+/).filter(Boolean));
+    deleteWord += r.deleteWord;
+    deleteSentence += r.deleteSentence;
+    return r.text;
+  });
+  return { text: splitSentences(formatted.join('\n')), deleteWord, deleteSentence };
 }
 
 module.exports = { formatTranscript };

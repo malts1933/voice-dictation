@@ -9,7 +9,7 @@ No cloud. No API keys. No accounts. Your voice never leaves your computer.
 ![Platform: Linux](https://img.shields.io/badge/platform-Linux-orange)
 ![License: MIT](https://img.shields.io/badge/license-MIT-green)
 ![Local](https://img.shields.io/badge/privacy-100%25%20local-orange)
-![Version](https://img.shields.io/badge/version-0.2.1-purple)
+![Version](https://img.shields.io/badge/version-0.2.3-purple)
 
 ---
 
@@ -64,6 +64,7 @@ On **macOS** grant Accessibility permission to your terminal/Python (System Sett
 - 🏠 **100% local & private** — faster-whisper runs on your machine, no cloud, no API key
 - 🖥️ **Zero-click server** — auto-starts in the background (invisible, no windows), auto-exits after inactivity
 - ⌨️ **Voice commands** — say "comma", "new line", "delete last word", "capitalize" and more (RU + EN)
+- 📐 **Sentence structure** — dictation is split into sentences, each on its own line (speech pauses + punctuation); disable with `voiceDictation.sentencesOnNewLine`
 - 🌐 **Russian + English** — auto-detection or explicit language selection
 - 💻 **Terminal dictation** — dictate straight into PowerShell, bash, cmd, or any REPL
 - 🔌 **Works in Antigravity** — it's a VS Code fork, so the same VSIX installs there too
@@ -135,6 +136,7 @@ Open any file (or a terminal), press **`Ctrl+Alt+G`**, speak, press **`Ctrl+Alt+
 | `voiceDictation.autoStartServer` | `true` | Start the local server automatically when needed |
 | `voiceDictation.pythonPath` | *(auto)* | Custom Python interpreter path with faster-whisper |
 | `voiceDictation.addTrailingSpace` | `true` | Append a space after inserted text |
+| `voiceDictation.sentencesOnNewLine` | `true` | Split dictation into sentences — one per line (pause/punctuation based) |
 
 ### Model size vs. accuracy
 
