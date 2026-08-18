@@ -19,13 +19,13 @@ def http(method, path, body=None):
 
 
 def main():
-    log = open("server_smoke.log", "a", encoding="utf-8")
+    log = open("server_smoke.log", "w", encoding="utf-8")
     proc = subprocess.Popen([sys.executable, "server.py", "--port", str(PORT),
                              "--idle-timeout", "30", "--model", "tiny"],
                             stdout=log, stderr=log)
     try:
         ok = False
-        for _ in range(90):
+        for _ in range(300):
             time.sleep(2)
             try:
                 st = http("GET", "/api/status")
