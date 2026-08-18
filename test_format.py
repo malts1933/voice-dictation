@@ -1,5 +1,7 @@
 import sys
 
+sys.stdout.reconfigure(encoding="utf-8")
+
 from dictation_format import format_transcript
 
 CASES = [

@@ -4,6 +4,8 @@ import sys
 import time
 import urllib.request
 
+sys.stdout.reconfigure(encoding="utf-8")
+
 PORT = 8799
 BASE = "http://127.0.0.1:%d" % PORT
 
@@ -18,11 +20,12 @@ def http(method, path, body=None):
 
 def main():
     log = open("server_smoke.log", "a", encoding="utf-8")
-    proc = subprocess.Popen([sys.executable, "server.py", "--port", str(PORT), "--idle-timeout", "30"],
+    proc = subprocess.Popen([sys.executable, "server.py", "--port", str(PORT),
+                             "--idle-timeout", "30", "--model", "tiny"],
                             stdout=log, stderr=log)
     try:
         ok = False
-        for _ in range(60):
+        for _ in range(90):
             time.sleep(2)
             try:
                 st = http("GET", "/api/status")
@@ -32,6 +35,13 @@ def main():
                 pass
         if not ok:
             print("FAIL: server did not start")
+            try:
+                log.flush()
+                with open("server_smoke.log", encoding="utf-8", errors="replace") as f:
+                    print("--- server log tail ---")
+                    print("\n".join(f.read().splitlines()[-20:]))
+            except Exception:
+                pass
             sys.exit(1)
         print("status:", st)
         lang = http("POST", "/api/language", {"language": "ru"})
