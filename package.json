@@ -1,0 +1,88 @@
+{
+  "name": "voice-dictation",
+  "displayName": "Voice Dictation (Local Whisper)",
+  "description": "Press a key, speak, text appears. 100% local, private speech-to-text dictation for VS Code and Antigravity, powered by faster-whisper.",
+  "version": "0.1.4",
+  "publisher": "malts1933",
+  "author": "malts1933",
+  "license": "MIT",
+  "icon": "icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/malts1933/voice-dictation.git"
+  },
+  "keywords": [
+    "dictation",
+    "voice",
+    "speech-to-text",
+    "whisper",
+    "speech recognition",
+    "voice typing",
+    "voice commands",
+    "antigravity",
+    "local",
+    "offline",
+    "privacy"
+  ],
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": ["Other"],
+  "activationEvents": [],
+  "main": "./extension.js",
+  "contributes": {
+    "commands": [
+      { "command": "voiceDictation.toggle", "title": "Voice Dictation: Start/stop recording (editor)" },
+      { "command": "voiceDictation.toggleTerminal", "title": "Voice Dictation: Dictate into terminal" },
+      { "command": "voiceDictation.cancel", "title": "Voice Dictation: Cancel recording" }
+    ],
+    "keybindings": [
+      { "command": "voiceDictation.toggle", "key": "ctrl+alt+space", "when": "editorTextFocus" },
+      { "command": "voiceDictation.toggleTerminal", "key": "ctrl+alt+space", "when": "terminalFocus" },
+      { "command": "voiceDictation.cancel", "key": "escape", "when": "voiceDictation.recording && editorTextFocus" },
+      { "command": "voiceDictation.cancel", "key": "escape", "when": "voiceDictation.recording && terminalFocus" }
+    ],
+    "configuration": {
+      "title": "Voice Dictation",
+      "properties": {
+        "voiceDictation.serverUrl": {
+          "type": "string",
+          "default": "http://127.0.0.1:8765",
+          "description": "URL of the local whisper server"
+        },
+        "voiceDictation.language": {
+          "type": "string",
+          "enum": ["auto", "ru", "en"],
+          "default": "auto",
+          "description": "Recognition language: auto, Russian or English"
+        },
+        "voiceDictation.addTrailingSpace": {
+          "type": "boolean",
+          "default": true,
+          "description": "Append a space after inserted text"
+        },
+        "voiceDictation.autoStartServer": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically start the local server when dictating and it is not running"
+        },
+        "voiceDictation.pythonPath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to the Python interpreter with faster-whisper installed (pythonw.exe = no console window). Leave empty for auto-detection."
+        },
+        "voiceDictation.model": {
+          "type": "string",
+          "enum": ["tiny", "base", "small", "medium", "large-v3"],
+          "default": "small",
+          "description": "Whisper model size (small = good balance, medium = more accurate but slower)"
+        },
+        "voiceDictation.serverIdleSeconds": {
+          "type": "number",
+          "default": 300,
+          "description": "Server shuts down by itself after this many seconds without use (0 = keep running)"
+        }
+      }
+    }
+  }
+}
