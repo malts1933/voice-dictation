@@ -44,7 +44,6 @@ The extension covers VS Code and Antigravity. For **every other app** — browse
 - 📖 **History** — every dictation is saved to `dictation_history.md` with a timestamp; open it from the tray ("History") or set a custom path in `global_dictation_config.json` (`history_file`).
 - 🚀 **Start at login** — tick "Start at login" in the tray menu: the app boots silently with your system, the Whisper model stays loaded in memory, dictation is instant. Works on Windows (registry), macOS (LaunchAgent) and Linux (`~/.config/autostart`).
 - 📋 **Paste last transcript** — `Ctrl+Alt+Space` pastes the previous result anywhere (Wispr Flow-style).
-- 📋 **Paste last transcript** — `Ctrl+Alt+Space` pastes the previous result anywhere (Wispr Flow-style).
 - ⏹️ `Esc` while recording cancels.
 - Hotkey and widget position are stored in `global_dictation_config.json` next to the script.
 
