@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.8] — 2026-08-19
+
+### Changed
+- Text structuring now uses a fast, reliable model by default: `nvidia/nemotron-3-super-120b-a12b` (per the SIN-Studio model rating) — with automatic fallback to `llama-3.3-nemotron-super-49b-v1`
+- Stronger built-in structuring prompt: explicitly removes filler words («ну», «бля», «типа», «короче»…), keeps every real detail — verified live against the API
+- Unstable/legacy models dropped from auto-fallback (gemini-2.5-flash, gemini-3.5-flash)
+
 ## [0.2.7] — 2026-08-19
 
 ### Added

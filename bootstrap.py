@@ -148,6 +148,14 @@ def create_managed_env(base):
         print("BOOTSTRAP_FAIL venv: " + out.strip()[-300:])
         return None
     if IS_WIN:
+        if not os.path.exists(managed_python().replace("python.exe", "pythonw.exe")):
+            base_dir = os.path.dirname(os.path.abspath(base))
+            base_w = os.path.join(base_dir, "pythonw.exe")
+            if os.path.exists(base_w):
+                try:
+                    shutil.copy(base_w, os.path.join(managed_env_dir(), "Scripts", "pythonw.exe"))
+                except Exception:
+                    pass
         try:
             subprocess.run(["attrib", "+h", env_root()], capture_output=True, timeout=30)
         except Exception:

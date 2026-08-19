@@ -11,12 +11,13 @@ const { formatTranscript } = require('./format');
 const SPIN = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
 
 const DEFAULT_STRUCTURE_PROMPT =
-  'Ты — редактор текста. Не сокращай и не пересказывай: сохрани КАЖДУЮ мысль, ' +
-  'факт и деталь из исходного текста. Исправь пунктуацию, опечатки и согласование, ' +
-  'убери слова-заполнители и повторы. Структурируй текст знаками препинания ' +
-  '(запятые, точки, тире, скобки), но НЕ используй переносы строк, абзацы и списки ' +
-  'с новой строки — весь результат должен быть ОДНОЙ строкой. Сохрани язык оригинала. ' +
-  'Верни ТОЛЬКО готовый структурированный текст без вступлений, пояснений и кавычек.';
+  'Ты — редактор текста. Удали ВСЕ слова-паразиты и заполнители: «ну», «бля», «типа», ' +
+  '«короче», «это самое», «как его там», «вот», «в общем», «так сказать», «понимаешь» и подобные. ' +
+  'Сохрани КАЖДУЮ реальную мысль, факт и деталь из исходного текста. Исправь пунктуацию, ' +
+  'опечатки и согласование. Структурируй текст знаками препинания (запятые, точки, тире, скобки), ' +
+  'но НЕ используй переносы строк, абзацы и списки с новой строки — весь результат должен быть ' +
+  'ОДНОЙ строкой. Сохрани язык оригинала. Верни ТОЛЬКО готовый структурированный текст ' +
+  'без вступлений, пояснений и кавычек.';
 
 let statusBarItem;
 let recording = false;
@@ -202,49 +203,62 @@ function httpsPostJson(url, headers, body, timeoutMs) {
   });
 }
 
+function callLLM(provider, model, key, userMsg) {
+  if (provider === 'gemini') {
+    return httpsPostJson(
+      'https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent?key=' + key,
+      { 'Content-Type': 'application/json' },
+      {
+        contents: [{ parts: [{ text: userMsg }] }],
+        generationConfig: { temperature: 0.2, maxOutputTokens: 4096 },
+      },
+      20000
+    ).then(data => {
+      const parts = ((data.candidates || [{}])[0].content || {}).parts || [];
+      return parts.map(p => p.text || '').join('').trim();
+    });
+  }
+  return httpsPostJson(
+    'https://integrate.api.nvidia.com/v1/chat/completions',
+    { 'Content-Type': 'application/json', Authorization: 'Bearer ' + key },
+    {
+      model: model,
+      messages: [{ role: 'user', content: userMsg }],
+      temperature: 0.2,
+      max_tokens: 4096,
+    },
+    20000
+  ).then(data => {
+    const out = ((data.choices || [{}])[0].message || {}).content || '';
+    return out.trim();
+  });
+}
+
 async function structureWithLLM(text) {
-  const model = cfg().get('structureModel', 'gemini-2.5-flash');
-  let provider = cfg().get('structureProvider', 'auto');
+  const configured = cfg().get('structureModel', 'nvidia/nemotron-3-super-120b-a12b');
   const prompt = cfg().get('structurePrompt', '') || DEFAULT_STRUCTURE_PROMPT;
   const keys = readApiKeys();
-  if (provider === 'auto') provider = model.startsWith('gemini-') ? 'gemini' : 'nvidia';
   const userMsg = prompt + '\n\nТЕКСТ ДЛЯ СТРУКТУРИРОВАНИЯ:\n' + text;
-  const pool = provider === 'gemini' ? keys.gemini : keys.nvidia;
-  if (!pool.length) return null;
-  for (const k of pool) {
-    try {
-      if (provider === 'gemini') {
-        const url =
-          'https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent?key=' + k;
-        const data = await httpsPostJson(
-          url,
-          { 'Content-Type': 'application/json' },
-          {
-            contents: [{ parts: [{ text: userMsg }] }],
-            generationConfig: { temperature: 0.2, maxOutputTokens: 4096 },
-          },
-          20000
-        );
-        const parts = ((data.candidates || [{}])[0].content || {}).parts || [];
-        const out = parts.map(p => p.text || '').join('').trim();
+  const targets = [];
+  const seen = new Set();
+  const add = (model, provider) => {
+    const id = provider + '|' + model;
+    if (seen.has(id)) return;
+    seen.add(id);
+    targets.push({ model, provider });
+  };
+  add(configured, configured.startsWith('gemini-') ? 'gemini' : 'nvidia');
+  add('nvidia/nemotron-3-super-120b-a12b', 'nvidia');
+  add('nvidia/llama-3.3-nemotron-super-49b-v1', 'nvidia');
+  for (const t of targets) {
+    const pool = t.provider === 'gemini' ? keys.gemini : keys.nvidia;
+    for (const k of pool) {
+      try {
+        const out = await callLLM(t.provider, t.model, k, userMsg);
         if (out) return out;
-      } else {
-        const data = await httpsPostJson(
-          'https://integrate.api.nvidia.com/v1/chat/completions',
-          { 'Content-Type': 'application/json', Authorization: 'Bearer ' + k },
-          {
-            model: model,
-            messages: [{ role: 'user', content: userMsg }],
-            temperature: 0.2,
-            max_tokens: 4096,
-          },
-          20000
-        );
-        const out = ((data.choices || [{}])[0].message || {}).content || '';
-        if (out.trim()) return out;
+      } catch (e) {
+        console.error('LLM attempt failed (' + t.provider + '/' + t.model + '):', e.message);
       }
-    } catch (e) {
-      console.error('LLM attempt failed (' + k.slice(0, 12) + '...):', e.message);
     }
   }
   return null;

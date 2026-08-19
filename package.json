@@ -2,7 +2,7 @@
   "name": "voice-dictation",
   "displayName": "Voice Dictation (Local Whisper)",
   "description": "Press a key, speak, text appears. 100% local, private speech-to-text dictation for VS Code and Antigravity, powered by faster-whisper.",
-  "version": "0.2.7",
+  "version": "0.2.8",
   "publisher": "malts1933",
   "author": "malts1933",
   "license": "MIT",
@@ -89,6 +89,27 @@
           "type": "number",
           "default": 300,
           "description": "Server shuts down by itself after this many seconds without use (0 = keep running)"
+        },
+        "voiceDictation.structure": {
+          "type": "boolean",
+          "default": true,
+          "description": "Structure the dictated text with an AI model (needs a key in api_key.txt next to the extension)"
+        },
+        "voiceDictation.structureModel": {
+          "type": "string",
+          "default": "nvidia/nemotron-3-super-120b-a12b",
+          "description": "Model used to structure the text (NVIDIA NIM name or gemini-* name; keys read from api_key.txt). Falls back to nemotron-3-super-120b-a12b / llama-3.3-nemotron-super-49b-v1 automatically"
+        },
+        "voiceDictation.structureProvider": {
+          "type": "string",
+          "enum": ["auto", "gemini", "nvidia"],
+          "default": "auto",
+          "description": "API provider for text structuring: auto (by model name), gemini or nvidia"
+        },
+        "voiceDictation.structurePrompt": {
+          "type": "string",
+          "default": "",
+          "description": "Custom prompt for the structuring model (empty = built-in prompt)"
         }
       }
     }
